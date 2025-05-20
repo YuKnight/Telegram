@@ -653,6 +653,15 @@ public class NativeByteBuffer extends AbstractSerializedData {
         super.finalize();
     }
 
+    public void print(String tag) {
+        ByteBuffer bb = buffer.duplicate();
+        StringBuilder sb = new StringBuilder();
+        while(bb.hasRemaining()) {
+            sb.append(String.format("%02x ", bb.get()));
+        }
+        System.out.println("[+] " + tag + " :[" + sb.toString() + "]");
+    }
+
     public static native long native_getFreeBuffer(int length);
     public static native ByteBuffer native_getJavaByteBuffer(long address);
     public static native int native_limit(long address);

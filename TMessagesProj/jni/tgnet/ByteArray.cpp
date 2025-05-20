@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <iomanip>
 #include "ByteArray.h"
 #include "FileLog.h"
 
@@ -68,4 +69,44 @@ void ByteArray::alloc(uint32_t len) {
 
 bool ByteArray::isEqualTo(ByteArray *byteArray) {
     return byteArray->length == length && !memcmp(byteArray->bytes, bytes, length);
+}
+
+
+//std::string printByteArray(ByteArray *data) {
+//    uint8_t *bytes = data->bytes;
+//    char *strBuf = new char[data->length * 3 + 1];
+//    char *ptr = strBuf;
+//    for (int i = 0; i < data->length; i++) {
+//        ptr += sprintf(ptr, "%02X ", bytes[i]);
+//    }
+//    //if (LOGS_ENABLED) DEBUG_D("[+] [%s]", strBuf);
+//    std::string s(strBuf);
+//    delete strBuf;
+//    strBuf = nullptr;
+//    return move(s);
+//}
+std::string ByteArray::bytesToHexString(ByteArray *datas) {
+    if (nullptr == datas) return "";
+
+    uint8_t *data = datas->bytes;
+    uint32_t length = datas->length;
+    std::ostringstream oss;
+    oss << std::hex << std::uppercase; // 设置为16进制格式，并使用大写字母
+    for (size_t i = 0; i < length; ++i) {
+        oss << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
+    }
+
+    return oss.str();
+}
+
+std::string ByteArray::bytesToHexString() {
+    uint8_t *data = bytes;
+    uint32_t length = length;
+    std::ostringstream oss;
+    oss << std::hex << std::uppercase; // 设置为16进制格式，并使用大写字母
+    for (size_t i = 0; i < length; ++i) {
+        oss << std::setw(2) << std::setfill('0') << static_cast<int>(data[i]);
+    }
+
+    return oss.str();
 }

@@ -38,6 +38,7 @@ import org.telegram.ui.Stories.MessageMediaStoryFull;
 import org.telegram.ui.Stories.MessageMediaStoryFull_old;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class TLRPC {
@@ -20976,6 +20977,63 @@ public class TLRPC {
     public static class TL_user extends User {
         public static final int constructor = 0x4b46c37e;
 
+        @Override
+        public String toString() {
+            return "TL_user{" +
+                    "phone='" + phone + '\'' +
+                    ", id=" + id +
+                    ", first_name='" + first_name + '\'' +
+                    ", last_name='" + last_name + '\'' +
+                    ", username='" + username + '\'' +
+                    ", access_hash=" + access_hash +
+                    ", photo=" + photo +
+                    ", status=" + status +
+                    ", flags=" + flags +
+                    ", flags2=" + flags2 +
+                    ", self=" + self +
+                    ", contact=" + contact +
+                    ", mutual_contact=" + mutual_contact +
+                    ", deleted=" + deleted +
+                    ", bot=" + bot +
+                    ", bot_chat_history=" + bot_chat_history +
+                    ", bot_nochats=" + bot_nochats +
+                    ", bot_can_edit=" + bot_can_edit +
+                    ", bot_business=" + bot_business +
+                    ", bot_has_main_app=" + bot_has_main_app +
+                    ", verified=" + verified +
+                    ", restricted=" + restricted +
+                    ", min=" + min +
+                    ", bot_inline_geo=" + bot_inline_geo +
+                    ", support=" + support +
+                    ", scam=" + scam +
+                    ", apply_min_photo=" + apply_min_photo +
+                    ", fake=" + fake +
+                    ", premium=" + premium +
+                    ", close_friend=" + close_friend +
+                    ", stories_unavailable=" + stories_unavailable +
+                    ", stories_hidden=" + stories_hidden +
+                    ", contact_require_premium=" + contact_require_premium +
+                    ", bot_info_version=" + bot_info_version +
+                    ", bot_inline_placeholder='" + bot_inline_placeholder + '\'' +
+                    ", lang_code='" + lang_code + '\'' +
+                    ", inactive=" + inactive +
+                    ", explicit_content=" + explicit_content +
+                    ", restriction_reason=" + restriction_reason +
+                    ", bot_attach_menu=" + bot_attach_menu +
+                    ", bot_menu_webview=" + bot_menu_webview +
+                    ", attach_menu_enabled=" + attach_menu_enabled +
+                    ", emoji_status=" + emoji_status +
+                    ", usernames=" + usernames +
+                    ", stories_max_id=" + stories_max_id +
+                    ", color=" + color +
+                    ", profile_color=" + profile_color +
+                    ", bot_active_users=" + bot_active_users +
+                    ", bot_verification_icon=" + bot_verification_icon +
+                    ", networkType=" + networkType +
+                    ", disableFree=" + disableFree +
+                    '}';
+        }
+
         public void readParams(InputSerializedData stream, boolean exception) {
             flags = stream.readInt32(exception);
             self = (flags & 1024) != 0;
@@ -21088,6 +21146,13 @@ public class TLRPC {
             flags = bot_attach_menu ? (flags | 134217728) : (flags &~ 134217728);
             flags = premium ? (flags | 268435456) : (flags &~ 268435456);
             flags = attach_menu_enabled ? (flags | 536870912) : (flags &~ 536870912);
+            flags = 0 != access_hash ? (flags | 1) : (flags & ~1);// TODO add missing part
+            flags = first_name != null ? (flags | 2) : (flags & ~2);
+            flags = last_name != null ? (flags | 4) : (flags & ~4);
+            flags = username != null ? (flags | 8) : (flags & ~8);
+            flags = phone != null ? (flags | 16) : (flags & ~16);
+            flags = photo != null ? (flags | 32) : (flags & ~32);
+            flags = status != null ? (flags | 64) : (flags & ~64);
             stream.writeInt32(flags);
             flags2 = bot_can_edit ? (flags2 | 2) : (flags2 &~ 2);
             flags2 = close_friend ? (flags2 | 4) : (flags2 &~ 4);
@@ -30146,6 +30211,17 @@ public class TLRPC {
     public static class TL_userStatusOnline extends UserStatus {
         public static final int constructor = 0xedb93949;
 
+        @Override
+        public String toString() {
+            return "TL_userStatusOnline{" +
+                    "flags=" + flags +
+                    ", expires=" + expires +
+                    ", by_me=" + by_me +
+                    ", networkType=" + networkType +
+                    ", disableFree=" + disableFree +
+                    '}';
+        }
+
         public void readParams(InputSerializedData stream, boolean exception) {
             expires = stream.readInt32(exception);
         }
@@ -33666,6 +33742,23 @@ public class TLRPC {
 
     public static class TL_userProfilePhoto extends UserProfilePhoto {
         public static final int constructor = 0x82d1f706;
+
+        @Override
+        public String toString() {
+            return "TL_userProfilePhoto{" +
+                    "flags=" + flags +
+                    ", has_video=" + has_video +
+                    ", photo_id=" + photo_id +
+                    ", photo_small=" + photo_small +
+                    ", photo_big=" + photo_big +
+                    ", stripped_thumb=" + Arrays.toString(stripped_thumb) +
+                    ", dc_id=" + dc_id +
+                    ", personal=" + personal +
+                    ", strippedBitmap=" + strippedBitmap +
+                    ", networkType=" + networkType +
+                    ", disableFree=" + disableFree +
+                    '}';
+        }
 
         public void readParams(InputSerializedData stream, boolean exception) {
             flags = stream.readInt32(exception);
@@ -44999,6 +45092,21 @@ public class TLRPC {
 
     public static class TL_fileLocationToBeDeprecated extends FileLocation {
         public static final int constructor = 0xbc7fc6cd;
+
+        @Override
+        public String toString() {
+            return "TL_fileLocationToBeDeprecated{" +
+                    "dc_id=" + dc_id +
+                    ", volume_id=" + volume_id +
+                    ", local_id=" + local_id +
+                    ", secret=" + secret +
+                    ", file_reference=" + Arrays.toString(file_reference) +
+                    ", key=" + Arrays.toString(key) +
+                    ", iv=" + Arrays.toString(iv) +
+                    ", networkType=" + networkType +
+                    ", disableFree=" + disableFree +
+                    '}';
+        }
 
         public void readParams(InputSerializedData stream, boolean exception) {
             volume_id = stream.readInt64(exception);

@@ -106,6 +106,7 @@ inline Connection *Handshake::getConnection() {
 }
 
 void Handshake::sendRequestData(TLObject *object, bool important) {
+    if (LOGS_ENABLED) DEBUG_D("[+] Handshake::sendRequestData: object:[%s] important:[%d]", typeid(*object).name(), important);// TODO 
     uint32_t messageLength = object->getObjectSize();
     NativeByteBuffer *buffer = BuffersStorage::getInstance().getFreeBuffer(20 + messageLength);
     buffer->writeInt64(0);
@@ -343,7 +344,7 @@ void Handshake::processHandshakeResponse_resPQ(TLObject *message, int64_t messag
         sendAckRequest(messageId);
         return;
     }
-
+    if (LOGS_ENABLED) DEBUG_D("[+] Handshake::processHandshakeResponse_resPQ: message:[%s] messageId:[%ld]|[%lx]", typeid(*message).name(), messageId, messageId);// TODO 
     handshakeState = 2;
     auto result = (TL_resPQ *) message;
     if (authNonce->isEqualTo(result->nonce.get())) {

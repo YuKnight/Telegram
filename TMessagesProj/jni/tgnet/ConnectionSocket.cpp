@@ -623,6 +623,7 @@ int32_t ConnectionSocket::checkSocketError(int32_t *error) {
 void ConnectionSocket::closeSocket(int32_t reason, int32_t error) {
     lastEventTime = ConnectionsManager::getInstance(instanceNum).getCurrentTimeMonotonicMillis();
     ConnectionsManager::getInstance(instanceNum).detachConnection(this);
+    if (LOGS_ENABLED) DEBUG_D("[+] ConnectionSocket::closeSocket object:[%p] socketFd:[%d] instanceNum:[%lu] reason:[%d] error:[%d]", this, socketFd, instanceNum, reason, error);
     if (socketFd >= 0) {
         epoll_ctl(ConnectionsManager::getInstance(instanceNum).epolFd, EPOLL_CTL_DEL, socketFd, nullptr);
         if (close(socketFd) != 0) {

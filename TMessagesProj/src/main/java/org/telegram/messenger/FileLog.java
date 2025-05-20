@@ -87,6 +87,10 @@ public class FileLog {
             return;
         }
         String requestSimpleName = request.getClass().getSimpleName();
+//        if (requestSimpleName.equals("updateStatus")) {
+//            new RuntimeException("updateStatus Stack Trace").printStackTrace();
+//            Log.d("updateStatus", "updateStatus Stack Trace", new RuntimeException("updateStatus Trace"));
+//        }
         checkGson();
 
         if (excludeRequests.contains(requestSimpleName) && error == null) {

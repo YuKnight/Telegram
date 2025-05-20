@@ -708,3 +708,13 @@ jobject NativeByteBuffer::getJavaByteBuffer() {
     return javaByteBuffer;
 }
 #endif
+
+void NativeByteBuffer::print(const char *tag) {
+//    char strBuf[3 * _limit + 1];// TODO crash
+//    char *ptr = strBuf;
+//    for (int i = 0; i < _limit; i++) {
+//    //for (int i = 0; i < _position; i++) {
+//        ptr += sprintf(ptr, "%02X ", buffer[i]);
+//    }
+//    if (LOGS_ENABLED) DEBUG_D("[+] [%s] count:[%d] position:[%d]-[%s]", tag, _limit, _position, strBuf);
+}

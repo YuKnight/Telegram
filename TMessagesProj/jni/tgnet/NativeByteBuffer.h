@@ -89,6 +89,9 @@ public:
     jobject getJavaByteBuffer();
 #endif
 
+    // TODO print
+    void print(const char * tag);
+
 private:
     void writeBytesInternal(uint8_t *b, uint32_t offset, uint32_t length);
 

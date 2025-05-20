@@ -120,6 +120,7 @@ Datacenter::Datacenter(int32_t instance, NativeByteBuffer *data) {
         uint32_t len = data->readUint32(nullptr);
         if (len != 0) {
             authKeyPerm = data->readBytes(len, nullptr);
+            //if (LOGS_ENABLED) DEBUG_D("[+] loadConfig Datacenter:Datacenter authKeyPerm:[%s]", ByteArray::bytesToHexString(authKeyPerm).c_str());
         }
         if (currentVersion >= 4) {
             authKeyPermId = data->readInt64(nullptr);
@@ -129,13 +130,22 @@ Datacenter::Datacenter(int32_t instance, NativeByteBuffer *data) {
                 authKeyPermId = data->readInt64(nullptr);
             }
         }
+        //if (LOGS_ENABLED) DEBUG_D("[+] loadConfig Datacenter:Datacenter authKeyId: (0x%" PRIx64 ")", authKeyPermId);
+        if (LOGS_ENABLED) DEBUG_D("[+] loadConfig Datacenter:Datacenter datacenterId:[%d] authKeyPermId: (0x%" PRIx64 ")|(%" PRId64 ") authKeyPerm:[%s]", datacenterId, authKeyPermId, authKeyPermId, ByteArray::bytesToHexString(authKeyPerm).c_str());
+
+
         if (currentVersion >= 8) {
             len = data->readUint32(nullptr);
             if (len != 0) {
                 authKeyTemp = data->readBytes(len, nullptr);
+                //if (LOGS_ENABLED) DEBUG_D("[+] loadConfig Datacenter:Datacenter authKeyTemp:[%s]", ByteArray::bytesToHexString(authKeyTemp).c_str());
+
             }
             authKeyTempId = data->readInt64(nullptr);
+            //if (LOGS_ENABLED) DEBUG_D("[+] loadConfig createRequestsData authKeyTempId: (0x%" PRIx64 ")", authKeyTempId);
         }
+        //if (LOGS_ENABLED) DEBUG_D("[+] loadConfig Datacenter:Datacenter datacenterId:[%d] authKeyTempId: (0x%" PRIx64 ")|(%" PRId64 ") authKeyTemp:[%s]", datacenterId, authKeyTempId, authKeyTempId, ByteArray::bytesToHexString(authKeyTemp).c_str());
+
         if (currentVersion >= 12) {
             len = data->readUint32(nullptr);
             if (len != 0) {
@@ -143,6 +153,8 @@ Datacenter::Datacenter(int32_t instance, NativeByteBuffer *data) {
             }
             authKeyMediaTempId = data->readInt64(nullptr);
         }
+        //if (LOGS_ENABLED) DEBUG_D("[+] loadConfig Datacenter:Datacenter datacenterId:[%d] authKeyMediaTempId: (0x%" PRIx64 ")|(%" PRId64 ") authKeyMediaTemp:[%s]", datacenterId, authKeyMediaTempId, authKeyMediaTempId, ByteArray::bytesToHexString(authKeyMediaTemp).c_str());
+
         authorized = data->readInt32(nullptr) != 0;
         len = data->readUint32(nullptr);
         for (uint32_t a = 0; a < len; a++) {
@@ -578,6 +590,7 @@ void Datacenter::serializeToStream(NativeByteBuffer *stream) {
         stream->writeInt32(0);
     }
     stream->writeInt64(authKeyPermId);
+    //if (LOGS_ENABLED) DEBUG_D("[+] saveConfig Datacenter:serializeToStream datacenterId:[%d] authKeyPermId: (0x%" PRIx64 ")|(%" PRId64 ") authKeyPerm:[%s]",datacenterId, authKeyPermId, authKeyPermId, ByteArray::bytesToHexString(authKeyPerm).c_str());
     if (authKeyTemp != nullptr) {
         stream->writeInt32(authKeyTemp->length);
         stream->writeBytes(authKeyTemp);
@@ -585,6 +598,7 @@ void Datacenter::serializeToStream(NativeByteBuffer *stream) {
         stream->writeInt32(0);
     }
     stream->writeInt64(authKeyTempId);
+    //if (LOGS_ENABLED) DEBUG_D("[+] saveConfig Datacenter:serializeToStream datacenterId:[%d] authKeyTempId: (0x%" PRIx64 ")|(%" PRId64 ") authKeyTemp:[%s]", datacenterId, authKeyTempId, authKeyTempId, ByteArray::bytesToHexString(authKeyTemp).c_str());
     if (authKeyMediaTemp != nullptr) {
         stream->writeInt32(authKeyMediaTemp->length);
         stream->writeBytes(authKeyMediaTemp);
@@ -592,6 +606,7 @@ void Datacenter::serializeToStream(NativeByteBuffer *stream) {
         stream->writeInt32(0);
     }
     stream->writeInt64(authKeyMediaTempId);
+    //if (LOGS_ENABLED) DEBUG_D("[+] saveConfig Datacenter:serializeToStream datacenterId:[%d] authKeyMediaTempId: (0x%" PRIx64 ")|(%" PRId64 ") authKeyMediaTemp:[%s]", datacenterId, authKeyMediaTempId, authKeyMediaTempId, ByteArray::bytesToHexString(authKeyMediaTemp).c_str());
     stream->writeInt32(authorized ? 1 : 0);
 
     size = 0;
@@ -1115,6 +1130,7 @@ NativeByteBuffer *Datacenter::createRequestsData(std::vector<std::unique_ptr<Net
     if (authKey == nullptr) {
         return nullptr;
     }
+    //if (LOGS_ENABLED) DEBUG_D("[+] Datacenter::createRequestsData authKeyId: (0x%" PRIx64 ") authKey:[%s]", authKeyId, ByteArray::bytesToHexString(authKey).c_str());
 
     int64_t messageId;
     TLObject *messageBody;
@@ -1187,6 +1203,8 @@ NativeByteBuffer *Datacenter::createRequestsData(std::vector<std::unique_ptr<Net
     buffer->writeInt64(authKeyId);
     buffer->position(24);
 
+    buffer->print("Datacenter::createRequestsData 1");
+
     if (pfsInit) {
         int64_t value;
         RAND_bytes((uint8_t *) &value, 8);
@@ -1200,14 +1218,30 @@ NativeByteBuffer *Datacenter::createRequestsData(std::vector<std::unique_ptr<Net
     buffer->writeInt64(messageId);
     buffer->writeInt32(messageSeqNo);
     buffer->writeInt32(messageSize);
+    buffer->print("Datacenter::createRequestsData 2");
     messageBody->serializeToStream(buffer);
     if (freeMessageBody) {
         delete messageBody;
     }
 
+    // TODO
+    buffer->print("Datacenter::createRequestsData 3");
+
     if (additionalSize != 0) {
         RAND_bytes(buffer->bytes() + 24 + 32 + messageSize, additionalSize);
     }
+    buffer->print("Datacenter::createRequestsData 4");
+//    // TODO print buffer
+//    uint8_t *buff = buffer->bytes();
+//    char strBuf[3 * buffer->limit() + 1];
+//    char *ptr = strBuf;
+//    for (int i = 0; i < buffer->limit(); i++) {
+//        sprintf(ptr, "%02X ", buff[i]);
+//        ptr += 3;
+//    }
+//    if (LOGS_ENABLED) DEBUG_D("[+] message:[%s]", strBuf);
+
+
     thread_local static uint8_t messageKey[96];
     switch (mtProtoVersion) {
         case 2: {
@@ -1235,10 +1269,12 @@ NativeByteBuffer *Datacenter::createRequestsData(std::vector<std::unique_ptr<Net
         }
     }
     memcpy(buffer->bytes() + 8, messageKey + 8, 16);
+    buffer->print("Datacenter::createRequestsData 5");
 
     generateMessageKey(instanceNum, authKey->bytes, messageKey + 8, messageKey + 32, false, mtProtoVersion);
     aesIgeEncryption(buffer->bytes() + 24, messageKey + 32, messageKey + 64, true, false, buffer->limit() - 24);
 
+    buffer->print("Datacenter::createRequestsData 6");
     return buffer;
 }
 

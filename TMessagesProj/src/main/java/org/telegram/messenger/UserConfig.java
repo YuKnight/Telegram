@@ -23,8 +23,11 @@ import java.util.Arrays;
 public class UserConfig extends BaseController {
 
     public static int selectedAccount;
-    public final static int MAX_ACCOUNT_DEFAULT_COUNT = 3;
-    public final static int MAX_ACCOUNT_COUNT = 4;
+//    public final static int MAX_ACCOUNT_DEFAULT_COUNT = 3;
+//    public final static int MAX_ACCOUNT_COUNT = 4;
+
+    public final static int MAX_ACCOUNT_DEFAULT_COUNT = 1;
+    public final static int MAX_ACCOUNT_COUNT = 1;
 
     private final Object sync = new Object();
     private volatile boolean configLoaded;
@@ -355,7 +358,8 @@ public class UserConfig extends BaseController {
 
             string = preferences.getString("user", null);
             if (string != null) {
-                byte[] bytes = Base64.decode(string, Base64.DEFAULT);
+                byte[] bytes = Base64.decode(string, Base64.DEFAULT);// TODO modify
+//                byte[] bytes = new byte[]{126, -61, 70, 75, 22, 4, 0, 2, 16, 0, 0, 0, -68, 107, -74, 1, 0, 0, 0, 0, 2, 68, 110, 0, 2, 77, 112, 0, 11, 53, 57, 49, 55, 50, 48, 57, 54, 52, 57, 54};
                 if (bytes != null) {
                     SerializedData data = new SerializedData(bytes);
                     currentUser = TLRPC.User.TLdeserialize(data, data.readInt32(false), false);

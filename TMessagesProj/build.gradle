@@ -60,6 +60,11 @@ dependencies {
     }
 
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
+
+    // unitest
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
 def isWindows = String.valueOf(DefaultNativePlatform.currentOperatingSystem.toFamilyName() == OperatingSystemFamily.WINDOWS)
@@ -107,6 +112,11 @@ android {
                 version '3.10.2'
                 arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-16'
             }
+        }
+        ndk {
+//            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+//            abiFilters "arm64-v8a", "armeabi-v7a"
+            abiFilters "arm64-v8a"
         }
     }
 

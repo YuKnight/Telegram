@@ -15,6 +15,7 @@ import android.util.Base64;
 import androidx.annotation.Keep;
 
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.util.Log;
 import com.google.android.gms.tasks.Task;
 import com.google.android.play.core.integrity.IntegrityManager;
 import com.google.android.play.core.integrity.IntegrityManagerFactory;
@@ -155,12 +156,14 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void discardConnection(int dcId, int connectionType) {
+        FileLog.d(String.format("[+] ConnectionsManager::discardConnection dcId:[%d] connectionType:[%d]", dcId, connectionType));
         Utilities.stageQueue.postRunnable(() -> {
             native_discardConnection(currentAccount, dcId, connectionType);
         });
     }
 
     public void failNotRunningRequest(int requestToken) {
+        FileLog.d(String.format("[+] ConnectionsManager::failNotRunningRequest requestToken:[%d]", requestToken));
         Utilities.stageQueue.postRunnable(() -> {
             native_failNotRunningRequest(currentAccount, requestToken);
         });
@@ -261,6 +264,16 @@ public class ConnectionsManager extends BaseController {
         if (getUserConfig().getCurrentUser() != null) {
             userPremium = getUserConfig().getCurrentUser().premium;
         }
+        if (BuildVars.LOGS_ENABLED) {
+            FileLog.d(String.format("SharedConfig.buildVersion():[%d], TLRPC.LAYER:[%d], BuildVars.APP_ID:[%d], " +
+                    "deviceModel:[%s], systemVersion:[%s], appVersion:[%s], langCode:[%s], systemLangCode:[%s], " +
+                    "configPath:[%s], FileLog.getNetworkLogPath():[%s], pushString:[%s], fingerprint:[%s], timezoneOffset:[%d], " +
+                    "getUserConfig().getClientUserId():[%d], userPremium:[%b], enablePushConnection:[%b]",
+                    SharedConfig.buildVersion(), TLRPC.LAYER, BuildVars.APP_ID,
+                    deviceModel, systemVersion, appVersion, langCode, systemLangCode,
+                    configPath, FileLog.getNetworkLogPath(), pushString, fingerprint, timezoneOffset,
+                    getUserConfig().getClientUserId(), userPremium, enablePushConnection));
+        }
         init(SharedConfig.buildVersion(), TLRPC.LAYER, BuildVars.APP_ID, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, FileLog.getNetworkLogPath(), pushString, fingerprint, timezoneOffset, getUserConfig().getClientUserId(), userPremium, enablePushConnection);
     }
 
@@ -336,6 +349,11 @@ public class ConnectionsManager extends BaseController {
 
     public int sendRequest(final TLObject object, final RequestDelegate onComplete, final RequestDelegateTimestamp onCompleteTimestamp, final QuickAckDelegate onQuickAck, final WriteToSocketDelegate onWriteToSocket, final int flags, final int datacenterId, final int connectionType, final boolean immediate) {
         final int requestToken = lastRequestToken.getAndIncrement();
+        String requestSimpleName = object.getClass().getSimpleName();
+//        if (requestSimpleName.equals("updateStatus")) {
+//            new RuntimeException("sendRequest updateStatus Stack Trace").printStackTrace();
+//            Log.d("sendRequest updateStatus", "updateStatus Stack Trace", new RuntimeException("updateStatus Trace"));
+//        }
         Utilities.stageQueue.postRunnable(() -> {
             sendRequestInternal(object, onComplete, onCompleteTimestamp, onQuickAck, onWriteToSocket, flags, datacenterId, connectionType, immediate, requestToken);
         });
@@ -345,11 +363,22 @@ public class ConnectionsManager extends BaseController {
     private void sendRequestInternal(TLObject object, RequestDelegate onComplete, RequestDelegateTimestamp onCompleteTimestamp, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket, int flags, int datacenterId, int connectionType, boolean immediate, int requestToken) {
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("send request " + object + " with token = " + requestToken);
+            FileLog.d(String.format("[+] ConnectionsManager.sendRequestInternal:object:[%s],flags:[%d], datacenterId:[%d], connectionType:[%d], immediate:[%b], requestToken:[%d]", object, flags, datacenterId, connectionType, immediate, requestToken));
         }
         try {
             NativeByteBuffer buffer = new NativeByteBuffer(object.getObjectSize());
             object.serializeToStream(buffer);
             object.freeResources();
+            // TODO buffer.print(); object.getClass().getTypeName()   native_sendRequest(currentAccount, buffer.address, flags, datacenterId, connectionType, immediate, requestToken);
+            buffer.print("sendRequestInternal after " + object + " serializeToStream");
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                buffer.print("[+] sendRequestInternal after " + object.getClass().getTypeName() + " serializeToStream");
+//            }
+//            String requestSimpleName = object.getClass().getSimpleName();
+//            if (requestSimpleName.equals("updateStatus")) {
+//                new RuntimeException("listen updateStatus Stack Trace").printStackTrace();
+//                Log.d("listen updateStatus", "updateStatus Stack Trace", new RuntimeException("updateStatus Trace"));
+//            }
 
             long startRequestTime = 0;
             if (BuildVars.DEBUG_PRIVATE_VERSION && BuildVars.LOGS_ENABLED || (connectionType & ConnectionTypeDownload) != 0) {
@@ -357,12 +386,14 @@ public class ConnectionsManager extends BaseController {
             }
             long finalStartRequestTime = startRequestTime;
             listen(requestToken, (response, errorCode, errorText, networkType, timestamp, requestMsgId, dcId) -> {
+                FileLog.d(String.format("[+] RequestDelegateInternal onComplete:response:[%d], errorCode:[%d], errorText:[%s], networkType:[%d], timestamp:[%d], requestMsgId:[%d], dcId:[%d]", response, errorCode, errorText, networkType, timestamp, requestMsgId, dcId));
                 try {
                     TLObject resp = null;
                     TLRPC.TL_error error = null;
                     int responseSize = 0;
                     if (response != 0) {
                         NativeByteBuffer buff = NativeByteBuffer.wrap(response);
+                        buff.print("RequestDelegateInternal onComplete");// TODO
                         buff.reused = true;
                         responseSize = buff.limit();
                         int magic = buff.readInt32(true);
@@ -402,6 +433,11 @@ public class ConnectionsManager extends BaseController {
                     }
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.d("java received " + resp + " error = " + error + " messageId = " + requestMsgId);
+//                        String requestSimpleName = object.getClass().getSimpleName();
+//                        if (requestSimpleName.equals("updateStatus")) {
+//                            new RuntimeException("listen updateStatus Stack Trace").printStackTrace();
+//                            Log.d("listen updateStatus", "updateStatus Stack Trace", new RuntimeException("updateStatus Trace"));
+//                        }
                     }
                     FileLog.dumpResponseAndRequest(currentAccount, object, resp, error, requestMsgId, finalStartRequestTime, requestToken);
                     final TLObject finalResponse = resp;
@@ -441,20 +477,22 @@ public class ConnectionsManager extends BaseController {
 
     private void listen(int requestToken, RequestDelegateInternal onComplete, QuickAckDelegate onQuickAck, WriteToSocketDelegate onWriteToSocket) {
         requestCallbacks.put(requestToken, new RequestCallbacks(onComplete, onQuickAck, onWriteToSocket));
-//        FileLog.d("{rc} listen(" + currentAccount + ", " + requestToken + "): " + requestCallbacks.size() + " requests' callbacks");
+        FileLog.d("{rc} listen(" + currentAccount + ", " + requestToken + "): " + requestCallbacks.size() + " requests' callbacks");
     }
 
     private void listenCancel(int requestToken, Runnable onCancelled) {
+        FileLog.d(String.format("[+] ConnectionsManager::listenCancel requestToken:[%d] onCancelled", requestToken));
         RequestCallbacks callbacks = requestCallbacks.get(requestToken);
         if (callbacks != null) {
             callbacks.onCancelled = onCancelled;
-//            FileLog.d("{rc} listenCancel(" + currentAccount + ", " + requestToken + "): " + requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} listenCancel(" + currentAccount + ", " + requestToken + "): " + requestCallbacks.size() + " requests' callbacks");
         } else {
-//            FileLog.d("{rc} listenCancel(" + currentAccount + ", " + requestToken + "): callback not found, " + requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} listenCancel(" + currentAccount + ", " + requestToken + "): callback not found, " + requestCallbacks.size() + " requests' callbacks");
         }
     }
 
     public static void onRequestClear(int currentAccount, int requestToken, boolean cancelled) {
+        FileLog.d(String.format("[+] ConnectionsManager::onRequestClear currentAccount:[%d] requestToken:[%d] cancelled:[%b]", currentAccount, requestToken, cancelled));
         ConnectionsManager connectionsManager = getInstance(currentAccount);
         if (connectionsManager == null) return;
         RequestCallbacks callbacks = connectionsManager.requestCallbacks.get(requestToken);
@@ -464,17 +502,18 @@ public class ConnectionsManager extends BaseController {
                     callbacks.onCancelled.run();
                 }
                 connectionsManager.requestCallbacks.remove(requestToken);
-//                FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): request to cancel is found " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+                FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): request to cancel is found " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
             } else {
-//                FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): request to cancel is not found " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+                FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): request to cancel is not found " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
             }
         } else if (callbacks != null) {
             connectionsManager.requestCallbacks.remove(requestToken);
-//            FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestClear(" + currentAccount + ", " + requestToken + ", " + cancelled + "): " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         }
     }
 
     public static void onRequestComplete(int currentAccount, int requestToken, long response, int errorCode, String errorText, int networkType, long timestamp, long requestMsgId, int dcId) {
+        FileLog.d(String.format("[+] ConnectionsManager::onRequestComplete currentAccount:[%d] requestToken:[%d] ", currentAccount, requestToken));
         ConnectionsManager connectionsManager = getInstance(currentAccount);
         if (connectionsManager == null) return;
         RequestCallbacks callbacks = connectionsManager.requestCallbacks.get(requestToken);
@@ -483,13 +522,14 @@ public class ConnectionsManager extends BaseController {
             if (callbacks.onComplete != null) {
                 callbacks.onComplete.run(response, errorCode, errorText, networkType, timestamp, requestMsgId, dcId);
             }
-//            FileLog.d("{rc} onRequestComplete(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestComplete(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         } else {
-//            FileLog.d("{rc} onRequestComplete(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestComplete(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         }
     }
 
     public static void onRequestQuickAck(int currentAccount, int requestToken) {
+        FileLog.d(String.format("[+] ConnectionsManager::onRequestQuickAck currentAccount:[%d] requestToken:[%d] ", currentAccount, requestToken));
         ConnectionsManager connectionsManager = getInstance(currentAccount);
         if (connectionsManager == null) return;
         RequestCallbacks callbacks = connectionsManager.requestCallbacks.get(requestToken);
@@ -497,13 +537,14 @@ public class ConnectionsManager extends BaseController {
             if (callbacks.onQuickAck != null) {
                 callbacks.onQuickAck.run();
             }
-//            FileLog.d("{rc} onRequestQuickAck(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestQuickAck(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         } else {
-//            FileLog.d("{rc} onRequestQuickAck(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestQuickAck(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         }
     }
 
     public static void onRequestWriteToSocket(int currentAccount, int requestToken) {
+        FileLog.d(String.format("[+] ConnectionsManager::onRequestWriteToSocket currentAccount:[%d] requestToken:[%d] ", currentAccount, requestToken));
         ConnectionsManager connectionsManager = getInstance(currentAccount);
         if (connectionsManager == null) return;
         RequestCallbacks callbacks = connectionsManager.requestCallbacks.get(requestToken);
@@ -511,17 +552,19 @@ public class ConnectionsManager extends BaseController {
             if (callbacks.onWriteToSocket != null) {
                 callbacks.onWriteToSocket.run();
             }
-//            FileLog.d("{rc} onRequestWriteToSocket(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestWriteToSocket(" + currentAccount + ", " + requestToken + "): found request " + requestToken + ", " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         } else {
-//            FileLog.d("{rc} onRequestWriteToSocket(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
+            FileLog.d("{rc} onRequestWriteToSocket(" + currentAccount + ", " + requestToken + "): not found request " + requestToken + "! " + connectionsManager.requestCallbacks.size() + " requests' callbacks");
         }
     }
 
     public void cancelRequest(int token, boolean notifyServer) {
+        FileLog.d(String.format("[+] ConnectionsManager::cancelRequest token:[%d] notifyServer:[%b] ", token, notifyServer));
         cancelRequest(token, notifyServer, null);
     }
 
     public void cancelRequest(int token, boolean notifyServer, Runnable onCancelled) {
+        FileLog.d(String.format("[+] ConnectionsManager::cancelRequest token:[%d] notifyServer:[%b] onCancelled", token, notifyServer));
         Utilities.stageQueue.postRunnable(() -> {
             if (onCancelled != null) {
                 listenCancel(token, () -> {
@@ -533,16 +576,19 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void cleanup(boolean resetKeys) {
+        FileLog.d(String.format("[+] ConnectionsManager::cleanup resetKeys:[%b]", resetKeys));
         native_cleanUp(currentAccount, resetKeys);
     }
 
     public void cancelRequestsForGuid(int guid) {
+        FileLog.d(String.format("[+] ConnectionsManager::cancelRequestsForGuid guid:[%d]", guid));
         Utilities.stageQueue.postRunnable(() -> {
             native_cancelRequestsForGuid(currentAccount, guid);
         });
     }
 
     public void bindRequestToGuid(int requestToken, int guid) {
+        FileLog.d(String.format("[+] ConnectionsManager::bindRequestToGuid requestToken:[%d] guid:[%d]", requestToken, guid));
         if (guid == 0) {
             return;
         }
@@ -550,10 +596,12 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void applyDatacenterAddress(int datacenterId, String ipAddress, int port) {
+        FileLog.d(String.format("[+] ConnectionsManager::applyDatacenterAddress datacenterId:[%d] ipAddress:[%s] port:[%d]", datacenterId, ipAddress, port));
         native_applyDatacenterAddress(currentAccount, datacenterId, ipAddress, port);
     }
 
     public int getConnectionState() {
+        FileLog.d("[+] ConnectionsManager::getConnectionState connectionState:" + connectionState);
         if (connectionState == ConnectionStateConnected && isUpdating) {
             return ConnectionStateUpdating;
         }
@@ -561,6 +609,7 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void setUserId(long id) {
+        FileLog.d("[+] ConnectionsManager::setUserId id:" + id);
         native_setUserId(currentAccount, id);
     }
 
@@ -574,6 +623,7 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void setPushConnectionEnabled(boolean value) {
+        FileLog.d("[+] ConnectionsManager::setPushConnectionEnabled value:" + value);
         native_setPushConnectionEnabled(currentAccount, value);
     }
 
@@ -618,11 +668,13 @@ public class ConnectionsManager extends BaseController {
             packageId = "";
         }
 
+        Log.i("DEBUG", String.format("currentAccount:[%d], version:[%d], layer:[%d], apiId:[%d], deviceModel:[%s], systemVersion:[%s], appVersion:[%s], langCode:[%s], systemLangCode:[%s], configPath:[%s], logPath:[%s], regId:[%s], cFingerprint:[%s], installer:[%s], packageId:[%s], timezoneOffset:[%d], userId:[%d], userPremium:[%b], enablePushConnection:[%b], ApplicationLoader.isNetworkOnline():[%b], ApplicationLoader.getCurrentNetworkType():[%d], SharedConfig.measureDevicePerformanceClass():[%d]", currentAccount, version, layer, apiId, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, logPath, regId, cFingerprint, installer, packageId, timezoneOffset, userId, userPremium, enablePushConnection, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(), SharedConfig.measureDevicePerformanceClass()));
         native_init(currentAccount, version, layer, apiId, deviceModel, systemVersion, appVersion, langCode, systemLangCode, configPath, logPath, regId, cFingerprint, installer, packageId, timezoneOffset, userId, userPremium, enablePushConnection, ApplicationLoader.isNetworkOnline(), ApplicationLoader.getCurrentNetworkType(), SharedConfig.measureDevicePerformanceClass());
         checkConnection();
     }
 
     public static void setLangCode(String langCode) {
+        FileLog.d(String.format("[+] ConnectionsManager::setLangCode langCode:[%s]", langCode));
         langCode = langCode.replace('_', '-').toLowerCase();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             native_setLangCode(a, langCode);
@@ -630,6 +682,7 @@ public class ConnectionsManager extends BaseController {
     }
 
     public static void setRegId(String regId, @PushListenerController.PushType int type, String status) {
+        FileLog.d(String.format("[+] ConnectionsManager::setRegId regId:[%s]", regId));
         String pushString = regId;
         if (!TextUtils.isEmpty(pushString) && type == PushListenerController.PUSH_TYPE_HUAWEI) {
             pushString = "huawei://" + pushString;
@@ -647,6 +700,7 @@ public class ConnectionsManager extends BaseController {
     }
 
     public static void setSystemLangCode(String langCode) {
+        FileLog.d(String.format("[+] ConnectionsManager::setSystemLangCode langCode:[%s]", langCode));
         langCode = langCode.replace('_', '-').toLowerCase();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             native_setSystemLangCode(a, langCode);
@@ -654,24 +708,29 @@ public class ConnectionsManager extends BaseController {
     }
 
     public void switchBackend(boolean restart) {
+        FileLog.d(String.format("[+] ConnectionsManager::switchBackend restart:[%b]", restart));
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         preferences.edit().remove("language_showed2").commit();
         native_switchBackend(currentAccount, restart);
     }
 
     public boolean isTestBackend() {
+        FileLog.d(String.format("[+] ConnectionsManager::isTestBackend"));
         return native_isTestBackend(currentAccount) != 0;
     }
 
     public void resumeNetworkMaybe() {
+        FileLog.d(String.format("[+] ConnectionsManager::resumeNetworkMaybe"));
         native_resumeNetwork(currentAccount, true);
     }
 
     public void updateDcSettings() {
+        FileLog.d(String.format("[+] ConnectionsManager::updateDcSettings currentAccount:[%d]", currentAccount));
         native_updateDcSettings(currentAccount);
     }
 
     public long getPauseTime() {
+        FileLog.d(String.format("[+] ConnectionsManager::getPauseTime"));
         return lastPauseTime;
     }
 

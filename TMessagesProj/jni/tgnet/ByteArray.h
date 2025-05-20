@@ -26,6 +26,8 @@ public:
 
     bool isEqualTo(ByteArray *byteArray);
 
+    std::string bytesToHexString();
+    static std::string bytesToHexString(ByteArray *datas);
 };
 
 #endif

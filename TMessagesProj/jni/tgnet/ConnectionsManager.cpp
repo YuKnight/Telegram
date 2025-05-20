@@ -934,6 +934,9 @@ void ConnectionsManager::onConnectionDataReceived(Connection *connection, Native
         }
         data->position(mark + 24);
 
+        // TODO
+        data->print("ConnectionsManager::onConnectionDataReceived");
+
         int64_t messageServerSalt = data->readInt64(&error);
         int64_t messageSessionId = data->readInt64(&error);
 
@@ -945,6 +948,8 @@ void ConnectionsManager::onConnectionDataReceived(Connection *connection, Native
         int64_t messageId = data->readInt64(&error);
         int32_t messageSeqNo = data->readInt32(&error);
         uint32_t messageLength = data->readUint32(&error);
+
+        if (LOGS_ENABLED) DEBUG_E("[+] messageServerSalt (0x%" PRIx64 ") messageSessionId (0x%" PRIx64 ") messageId (0x%" PRIx64 ") messageSeqNo:0x%02x messageLength:0x%02x", messageServerSalt, messageSessionId, messageId, messageSeqNo, messageLength);
 
         int32_t processedStatus = connection->isMessageIdProcessed(messageId);
 
@@ -1869,6 +1874,7 @@ void ConnectionsManager::detachConnection(ConnectionSocket *connection) {
 
 int32_t ConnectionsManager::sendRequestInternal(TLObject *object, onCompleteFunc onComplete, onQuickAckFunc onQuickAck, onRequestClearFunc onClear, uint32_t flags, uint32_t datacenterId, ConnectionType connectionType, bool immediate) {
     auto request = new Request(instanceNum, lastRequestToken++, connectionType, flags, datacenterId, onComplete, onQuickAck, nullptr, onClear);
+    if (LOGS_ENABLED) DEBUG_D("[+] ConnectionsManager::sendRequestInternal object:[%s]", typeid(*object).name());
     request->rawRequest = object;
     request->rpcRequest = wrapInLayer(object, getDatacenterWithId(datacenterId), request);
     auto cancelledIterator = tokensToBeCancelled.find(request->requestToken);
@@ -1901,8 +1907,9 @@ int32_t ConnectionsManager::sendRequest(TLObject *object, onCompleteFunc onCompl
     }
     scheduleTask([&, requestToken, object, onComplete, onQuickAck, onClear, flags, datacenterId, connectionType, immediate] {
         auto request = new Request(instanceNum, requestToken, connectionType, flags, datacenterId, onComplete, onQuickAck, nullptr, onClear);
+        if (LOGS_ENABLED) DEBUG_D("[+] ConnectionsManager::sendRequest  scheduleTask  object:[%s]", typeid(*object).name());
         request->rawRequest = object;
-        request->rpcRequest = wrapInLayer(object, getDatacenterWithId(datacenterId), request);
+        request->rpcRequest = wrapInLayer(object, getDatacenterWithId(datacenterId), request);// object->isNeedLayer()
         auto cancelledIterator = tokensToBeCancelled.find(request->requestToken);
         if (cancelledIterator != tokensToBeCancelled.end()) {
             if (LOGS_ENABLED) DEBUG_D("(1) request is cancelled before sending, token %d", requestToken);
@@ -2541,12 +2548,12 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
         )) && !request->awaitingIntegrityCheck) {
             if (!forceThisRequest && request->connectionToken > 0) {
                 if ((request->connectionType & ConnectionTypeGeneric || request->connectionType & ConnectionTypeTemp) && request->connectionToken == connection->getConnectionToken()) {
-//                    if (LOGS_ENABLED) DEBUG_D("request token is valid, not retrying %s (%p)", typeInfo.name(), request->rawRequest);
+                    if (LOGS_ENABLED) DEBUG_D("request token is valid, not retrying %s (%p)", typeInfo.name(), request->rawRequest);
                     iter++;
                     continue;
                 } else {
                     if (connection->getConnectionToken() != 0 && request->connectionToken == connection->getConnectionToken()) {
-//                        if (LOGS_ENABLED) DEBUG_D("request download token is valid, not retrying %s (%p)", typeInfo.name(), request->rawRequest);
+                        if (LOGS_ENABLED) DEBUG_D("request download token is valid, not retrying %s (%p)", typeInfo.name(), request->rawRequest);
                         iter++;
                         continue;
                     }
@@ -2740,6 +2747,7 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
             continue;
         } else {
             if (request->needInitRequest(requestDatacenter, currentVersion) && !request->hasInitFlag()) {
+                if (LOGS_ENABLED) DEBUG_D("[+] ConnectionsManager::processRequestQueue object:[%s]", typeid(*(request->rawRequest)).name());
                 request->rpcRequest.release();
                 request->rpcRequest = wrapInLayer(request->rawRequest, requestDatacenter, request);
             }
@@ -2776,8 +2784,8 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
             case ConnectionTypeGenericMedia:
                 if (!canUseUnboundKey && genericRunningRequestCount >= MAX_GENERAL_REQUESTS) {
                     iter++;
-//                    if (LOGS_ENABLED)
-//                        DEBUG_D("skip queue, token = %d: generic type: running generic requests >= %d", request->requestToken, MAX_GENERAL_REQUESTS);
+                    if (LOGS_ENABLED)
+                        DEBUG_D("skip queue, token = %d: generic type: running generic requests >= %d", request->requestToken, MAX_GENERAL_REQUESTS);
                     continue;
                 }
                 genericRunningRequestCount++;
@@ -3070,6 +3078,7 @@ Datacenter *ConnectionsManager::getDatacenterWithId(uint32_t datacenterId) {
 }
 
 std::unique_ptr<TLObject> ConnectionsManager::wrapInLayer(TLObject *object, Datacenter *datacenter, Request *baseRequest) {
+    if (LOGS_ENABLED) DEBUG_D("[+] ConnectionsManager::wrapInLayer object:[%s]", typeid(*object).name());
     if (object->isNeedLayer()) {
         bool media = PFS_ENABLED && datacenter != nullptr && baseRequest->isMediaRequest() && datacenter->hasMediaAddress();
         if (datacenter == nullptr || baseRequest->needInitRequest(datacenter, currentVersion)) {
@@ -3269,6 +3278,8 @@ inline std::string decodeSecret(std::string secret) {
 }
 
 void ConnectionsManager::updateDcSettings(uint32_t dcNum, bool workaround, bool ifLoadingTryAgain) {
+    // if (LOGS_ENABLED) DEBUG_D("wrap in layer %s, flags = %d", typeid(*object).name(), request->flags);
+    if (LOGS_ENABLED) DEBUG_D("[+] ConnectionsManager::updateDcSettings dcNum:[%d], workaround:[%d] ifLoadingTryAgain:[%d]", dcNum, workaround, ifLoadingTryAgain);
     if (workaround) {
         if (updatingDcSettingsWorkaround) {
             return;

@@ -70,7 +70,8 @@ void Connection::suspendConnection(bool idle) {
 
 void Connection::onReceivedData(NativeByteBuffer *buffer) {
     AES_ctr128_encrypt(buffer->bytes(), buffer->bytes(), buffer->limit(), &decryptKey, decryptIv, decryptCount, &decryptNum);
-    
+
+    buffer->print("Connection::onReceivedData");
     failedConnectionCount = 0;
 
     if (connectionType == ConnectionTypeGeneric || connectionType == ConnectionTypeTemp || connectionType == ConnectionTypeGenericMedia) {
